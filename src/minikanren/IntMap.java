@@ -18,6 +18,9 @@
 
 package minikanren;
 
+/**
+ * Persistent map from integers to objects.
+ */
 public class IntMap<VALUE> {
 	private final VALUE val;
 	private final IntMap<VALUE> sub0, sub1, sub2, sub3;
@@ -27,7 +30,7 @@ public class IntMap<VALUE> {
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T> IntMap<T> create() {
-		return (IntMap<T>) (EMPTY);
+		return (IntMap<T>) EMPTY;
 	}
 
 	private static IntMap<Object> EMPTY = new IntMap<Object>();
@@ -81,6 +84,7 @@ public class IntMap<VALUE> {
 	 * Creates a new map that keeps all previous associations but reassociates
 	 * the given key with the given value.
 	 */
+	@SuppressWarnings("unchecked")
 	public IntMap<VALUE> set(int key, VALUE value) {
 		assert key >= 0;
 
@@ -112,6 +116,9 @@ public class IntMap<VALUE> {
 			}
 		}
 
-		return new IntMap<VALUE>(v, s0, s1, s2, s3);
+		if (v == null && s0 == EMPTY && s1 == EMPTY && s2 == EMPTY && s3 == EMPTY)
+			return (IntMap<VALUE>) EMPTY;
+		else
+			return new IntMap<VALUE>(v, s0, s1, s2, s3);
 	}
 }
