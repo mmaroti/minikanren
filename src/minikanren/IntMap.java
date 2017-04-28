@@ -18,18 +18,21 @@
 
 package minikanren;
 
-public class Tree<VALUE> {
+public class IntMap<VALUE> {
 	private final VALUE val;
-	private final Tree<VALUE> sub0, sub1, sub2, sub3;
+	private final IntMap<VALUE> sub0, sub1, sub2, sub3;
 
+	/**
+	 * Creates an empty map where all integers are mapped to <code>null</code>.
+	 */
 	@SuppressWarnings("unchecked")
-	public static <T> Tree<T> create() {
-		return (Tree<T>) (EMPTY);
+	public static <T> IntMap<T> create() {
+		return (IntMap<T>) (EMPTY);
 	}
 
-	private static Tree<Object> EMPTY = new Tree<Object>();
+	private static IntMap<Object> EMPTY = new IntMap<Object>();
 
-	private Tree() {
+	private IntMap() {
 		val = null;
 		sub0 = this;
 		sub1 = this;
@@ -37,13 +40,15 @@ public class Tree<VALUE> {
 		sub3 = this;
 	}
 
-	public VALUE get(int index) {
-		assert index >= 0;
-		Tree<VALUE> t = this;
+	/**
+	 * Returns the value associated with the given integer.
+	 */
+	public VALUE get(int key) {
+		IntMap<VALUE> t = this;
 
-		while (t != EMPTY && --index >= 0) {
-			int a = index & 0x03;
-			index >>= 2;
+		while (t != EMPTY && key != 0) {
+			int a = key & 0x03;
+			key = (key >> 2) & Integer.MAX_VALUE;
 
 			switch (a) {
 			case 0:
@@ -64,7 +69,7 @@ public class Tree<VALUE> {
 		return t.val;
 	}
 
-	private Tree(VALUE value, Tree<VALUE> sub0, Tree<VALUE> sub1, Tree<VALUE> sub2, Tree<VALUE> sub3) {
+	private IntMap(VALUE value, IntMap<VALUE> sub0, IntMap<VALUE> sub1, IntMap<VALUE> sub2, IntMap<VALUE> sub3) {
 		this.val = value;
 		this.sub0 = sub0;
 		this.sub1 = sub1;
@@ -72,37 +77,41 @@ public class Tree<VALUE> {
 		this.sub3 = sub3;
 	}
 
-	public Tree<VALUE> set(int index, VALUE value) {
-		assert index >= 0;
+	/**
+	 * Creates a new map that keeps all previous associations but reassociates
+	 * the given key with the given value.
+	 */
+	public IntMap<VALUE> set(int key, VALUE value) {
+		assert key >= 0;
 
 		VALUE v = val;
-		Tree<VALUE> s0 = sub0;
-		Tree<VALUE> s1 = sub1;
-		Tree<VALUE> s2 = sub2;
-		Tree<VALUE> s3 = sub3;
+		IntMap<VALUE> s0 = sub0;
+		IntMap<VALUE> s1 = sub1;
+		IntMap<VALUE> s2 = sub2;
+		IntMap<VALUE> s3 = sub3;
 
-		if (--index < 0)
+		if (key == 0)
 			v = value;
 		else {
-			int a = index & 0x3;
-			index >>= 2;
+			int a = key & 0x3;
+			key = (key >> 2) & Integer.MAX_VALUE;
 
 			switch (a) {
 			case 0:
-				s0 = sub0.set(index, value);
+				s0 = sub0.set(key, value);
 				break;
 			case 1:
-				s1 = sub1.set(index, value);
+				s1 = sub1.set(key, value);
 				break;
 			case 2:
-				s2 = sub2.set(index, value);
+				s2 = sub2.set(key, value);
 				break;
 			default:
-				s3 = sub3.set(index, value);
+				s3 = sub3.set(key, value);
 				break;
 			}
 		}
 
-		return new Tree<VALUE>(v, s0, s1, s2, s3);
+		return new IntMap<VALUE>(v, s0, s1, s2, s3);
 	}
 }

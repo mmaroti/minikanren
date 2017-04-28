@@ -18,17 +18,17 @@
 
 package minikanren;
 
-public abstract class Stream<V> {
+public abstract class Stream<VALUE> {
 	/**
 	 * Takes two streams and merges them by interleaving values and work on lazy
 	 * streams.
 	 */
-	public abstract Stream<V> merge(Stream<V> other);
+	public abstract Stream<VALUE> merge(Stream<VALUE> other);
 
 	/**
 	 * Maps each element to a lazy stream and merges them into a single stream.
 	 */
-	public abstract Stream<V> mapcat(Map<V> map);
+	public abstract Stream<VALUE> mapcat(Map<VALUE> map);
 
 	public static abstract class Map<V> {
 		public abstract Stream<V> map(V value);
