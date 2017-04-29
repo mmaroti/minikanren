@@ -18,10 +18,12 @@
 
 package minikanren;
 
+import java.util.*;
+
 /**
  * Persistent map from integers to objects.
  */
-public class IntMap<VALUE> {
+public class IntMap<VALUE> implements Iterable<IntMap.Entry<VALUE>> {
 	private final VALUE val;
 	private final IntMap<VALUE> sub0, sub1, sub2, sub3;
 
@@ -43,15 +45,21 @@ public class IntMap<VALUE> {
 		sub3 = this;
 	}
 
+	public boolean isEmpty() {
+		return this == EMPTY;
+	}
+
 	/**
 	 * Returns the value associated with the given integer.
 	 */
 	public VALUE get(int key) {
+		assert key >= 0;
 		IntMap<VALUE> t = this;
 
-		while (t != EMPTY && key != 0) {
+		while (t != EMPTY && key > 0) {
+			key -= 1;
 			int a = key & 0x03;
-			key = (key >> 2) & Integer.MAX_VALUE;
+			key >>= 2;
 
 			switch (a) {
 			case 0:
@@ -72,7 +80,8 @@ public class IntMap<VALUE> {
 		return t.val;
 	}
 
-	private IntMap(VALUE value, IntMap<VALUE> sub0, IntMap<VALUE> sub1, IntMap<VALUE> sub2, IntMap<VALUE> sub3) {
+	private IntMap(VALUE value, IntMap<VALUE> sub0, IntMap<VALUE> sub1,
+			IntMap<VALUE> sub2, IntMap<VALUE> sub3) {
 		this.val = value;
 		this.sub0 = sub0;
 		this.sub1 = sub1;
@@ -94,11 +103,12 @@ public class IntMap<VALUE> {
 		IntMap<VALUE> s2 = sub2;
 		IntMap<VALUE> s3 = sub3;
 
-		if (key == 0)
+		if (key <= 0)
 			v = value;
 		else {
+			key -= 1;
 			int a = key & 0x3;
-			key = (key >> 2) & Integer.MAX_VALUE;
+			key >>= 2;
 
 			switch (a) {
 			case 0:
@@ -116,9 +126,64 @@ public class IntMap<VALUE> {
 			}
 		}
 
-		if (v == null && s0 == EMPTY && s1 == EMPTY && s2 == EMPTY && s3 == EMPTY)
+		if (v == null && s0 == EMPTY && s1 == EMPTY && s2 == EMPTY
+				&& s3 == EMPTY)
 			return (IntMap<VALUE>) EMPTY;
 		else
 			return new IntMap<VALUE>(v, s0, s1, s2, s3);
+	}
+
+	public static class Entry<VALUE> {
+		public final int key;
+		public final VALUE value;
+
+		public Entry(int key, VALUE value) {
+			this.key = key;
+			this.value = value;
+		}
+	}
+
+	private static class Iter<VALUE> implements Iterator<Entry<VALUE>> {
+		private ArrayList<Entry<IntMap<VALUE>>> stack = new ArrayList<Entry<IntMap<VALUE>>>();
+
+		private Iter(IntMap<VALUE> map) {
+			if (map != EMPTY)
+				stack.add(new Entry<IntMap<VALUE>>(0, map));
+		}
+
+		private Entry<IntMap<VALUE>> head() {
+			while (!stack.isEmpty()) {
+				Entry<IntMap<VALUE>> h = stack.get(stack.size() - 1);
+				if (h.value.val != null)
+					return h;
+			}
+			return null;
+		}
+
+		@Override
+		public boolean hasNext() {
+			return head() != null;
+		}
+
+		@Override
+		public Entry<VALUE> next() {
+			Entry<IntMap<VALUE>> h = head();
+			if (h != null) {
+				stack.remove(stack.size() - 1);
+
+				return new Entry<VALUE>(h.key, h.value.val);
+			} else
+				throw new NoSuchElementException();
+		}
+
+		@Override
+		public void remove() {
+			throw new UnsupportedOperationException();
+		}
+	}
+
+	@Override
+	public Iterator<Entry<VALUE>> iterator() {
+		return new Iter<VALUE>(this);
 	}
 }
