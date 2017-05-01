@@ -80,8 +80,7 @@ public class IntMap<VALUE> implements Iterable<IntMap.Entry<VALUE>> {
 		return t.val;
 	}
 
-	private IntMap(VALUE value, IntMap<VALUE> sub0, IntMap<VALUE> sub1,
-			IntMap<VALUE> sub2, IntMap<VALUE> sub3) {
+	private IntMap(VALUE value, IntMap<VALUE> sub0, IntMap<VALUE> sub1, IntMap<VALUE> sub2, IntMap<VALUE> sub3) {
 		this.val = value;
 		this.sub0 = sub0;
 		this.sub1 = sub1;
@@ -126,11 +125,25 @@ public class IntMap<VALUE> implements Iterable<IntMap.Entry<VALUE>> {
 			}
 		}
 
-		if (v == null && s0 == EMPTY && s1 == EMPTY && s2 == EMPTY
-				&& s3 == EMPTY)
+		if (v == null && s0 == EMPTY && s1 == EMPTY && s2 == EMPTY && s3 == EMPTY)
 			return (IntMap<VALUE>) EMPTY;
 		else
 			return new IntMap<VALUE>(v, s0, s1, s2, s3);
+	}
+
+	/**
+	 * Returns the number of non-null elements in the map.
+	 */
+	public int size() {
+		if (this == EMPTY)
+			return 0;
+
+		int s = val != null ? 1 : 0;
+		s += sub0.size();
+		s += sub1.size();
+		s += sub2.size();
+		s += sub3.size();
+		return s;
 	}
 
 	public static class Entry<VALUE> {
@@ -138,40 +151,69 @@ public class IntMap<VALUE> implements Iterable<IntMap.Entry<VALUE>> {
 		public final VALUE value;
 
 		public Entry(int key, VALUE value) {
+			assert value != null;
+
 			this.key = key;
 			this.value = value;
 		}
 	}
 
+	private static class Trace<VALUE> {
+		private final Trace<VALUE> last;
+		private final IntMap<VALUE> map;
+		private final int key;
+		private final int div;
+
+		private Trace(Trace<VALUE> last, IntMap<VALUE> node, int index, int divider) {
+			this.last = last;
+			this.map = node;
+			this.key = index;
+			this.div = divider;
+		}
+	}
+
 	private static class Iter<VALUE> implements Iterator<Entry<VALUE>> {
-		private ArrayList<Entry<IntMap<VALUE>>> stack = new ArrayList<Entry<IntMap<VALUE>>>();
+		private Trace<VALUE> trace;
 
 		private Iter(IntMap<VALUE> map) {
-			if (map != EMPTY)
-				stack.add(new Entry<IntMap<VALUE>>(0, map));
+			if (map != EMPTY) {
+				trace = new Trace<VALUE>(null, map, 0, 1);
+				if (trace.map.val == null)
+					find();
+			} else
+				trace = null;
 		}
 
-		private Entry<IntMap<VALUE>> head() {
-			while (!stack.isEmpty()) {
-				Entry<IntMap<VALUE>> h = stack.get(stack.size() - 1);
-				if (h.value.val != null)
-					return h;
-			}
-			return null;
+		private void find() {
+			do {
+				int key = trace.key;
+				IntMap<VALUE> map = trace.map;
+				int div = trace.div;
+
+				trace = trace.last;
+				if (map.sub3 != EMPTY)
+					trace = new Trace<VALUE>(trace, map.sub3, key + 4 * div, div << 2);
+				if (map.sub2 != EMPTY)
+					trace = new Trace<VALUE>(trace, map.sub2, key + 3 * div, div << 2);
+				if (map.sub1 != EMPTY)
+					trace = new Trace<VALUE>(trace, map.sub1, key + 2 * div, div << 2);
+				if (map.sub0 != EMPTY)
+					trace = new Trace<VALUE>(trace, map.sub0, key + div, div << 2);
+			} while (trace != null && trace.map.val == null);
 		}
 
 		@Override
 		public boolean hasNext() {
-			return head() != null;
+			return trace != null;
 		}
 
 		@Override
 		public Entry<VALUE> next() {
-			Entry<IntMap<VALUE>> h = head();
-			if (h != null) {
-				stack.remove(stack.size() - 1);
-
-				return new Entry<VALUE>(h.key, h.value.val);
+			if (trace != null) {
+				int key = trace.key;
+				VALUE val = trace.map.val;
+				find();
+				return new Entry<VALUE>(key, val);
 			} else
 				throw new NoSuchElementException();
 		}
@@ -182,6 +224,9 @@ public class IntMap<VALUE> implements Iterable<IntMap.Entry<VALUE>> {
 		}
 	}
 
+	/**
+	 * Returns an interator for the non-null elements of this map.
+	 */
 	@Override
 	public Iterator<Entry<VALUE>> iterator() {
 		return new Iter<VALUE>(this);
