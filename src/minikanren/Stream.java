@@ -25,14 +25,14 @@ public abstract class Stream<VALUE> {
 	 */
 	public abstract Stream<VALUE> merge(Stream<VALUE> other);
 
+	public static abstract class Map<V> {
+		public abstract Stream<V> map(V value);
+	}
+
 	/**
 	 * Maps each element to a lazy stream and merges them into a single stream.
 	 */
 	public abstract Stream<VALUE> mapcat(Map<VALUE> map);
-
-	public static abstract class Map<V> {
-		public abstract Stream<V> map(V value);
-	}
 
 	public static class Nill<V> extends Stream<V> {
 		@Override
