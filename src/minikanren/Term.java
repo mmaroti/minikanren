@@ -23,11 +23,28 @@ public abstract class Term {
 	 * Finds the term associated with this term (variable) under the given
 	 * substitution map.
 	 */
-	public Term walk(IntMap<Term> map) {
-		return this;
+	public abstract Term walk(IntMap<Term> map);
+
+	public IntMap<Term> unify(IntMap<Term> map, Term other) {
+		Term term = walk(map);
+		other = other.walk(map);
+
+		if (term.equals(other))
+			return map;
+		else if (term instanceof Variable) {
+			int i = ((Variable) term).index;
+			assert map.get(i) == null;
+			return map.set(i, other);
+		} else if (other instanceof Variable) {
+			int i = ((Variable) other).index;
+			assert map.get(i) == null;
+			return map.set(i, term);
+		}
+
+		return null;
 	}
 
-	public abstract IntMap<Term> unify(Term other, IntMap<Term> map);
+	protected abstract Variable getVariable();
 
 	@Override
 	public abstract String toString();
@@ -50,17 +67,16 @@ public abstract class Term {
 				Term t = map.get(v.index);
 				if (t == null)
 					return v;
-				else if (!(t instanceof Variable))
+
+				v = t.getVariable();
+				if (v == null)
 					return t;
-				else
-					v = (Variable) t;
 			}
 		}
 
 		@Override
-		public IntMap<Term> unify(Term other, IntMap<Term> map) {
-			// TODO Auto-generated method stub
-			return null;
+		protected Variable getVariable() {
+			return this;
 		}
 
 		@Override
@@ -78,11 +94,23 @@ public abstract class Term {
 		}
 	}
 
-	public static class FreeOperation extends Term {
+	public abstract static class Value extends Term {
+		@Override
+		public Term walk(IntMap<Term> map) {
+			return this;
+		}
+
+		@Override
+		protected Variable getVariable() {
+			return null;
+		}
+	}
+
+	public static class FreeOp extends Value {
 		public final String operation;
 		public final Term[] subterms;
 
-		public FreeOperation(String operation, Term... subterms) {
+		public FreeOp(String operation, Term... subterms) {
 			this.operation = operation;
 			this.subterms = subterms;
 		}
@@ -102,10 +130,9 @@ public abstract class Term {
 
 		@Override
 		public boolean equals(Object other) {
-			if (other instanceof FreeOperation) {
-				FreeOperation o = (FreeOperation) other;
-				if (!operation.equals(o.operation)
-						|| subterms.length != o.subterms.length)
+			if (other instanceof FreeOp) {
+				FreeOp o = (FreeOp) other;
+				if (!operation.equals(o.operation) || subterms.length != o.subterms.length)
 					return false;
 
 				for (int i = 0; i < subterms.length; i++)
