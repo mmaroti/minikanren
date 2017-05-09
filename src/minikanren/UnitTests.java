@@ -27,9 +27,13 @@ public class UnitTests {
 	}
 
 	public static <V> void print(IntMap<V> map) {
-		System.out.println("map of size " + map.size());
-		for (IntMap.Entry<V> entry : map)
-			System.out.println("" + entry.key + "\t" + entry.value);
+		if (map == null) {
+			System.out.println("null map");
+		} else {
+			System.out.println("map of size " + map.size() + ":");
+			for (IntMap.Entry<V> entry : map)
+				System.out.println("" + entry.key + "\t" + entry.value);
+		}
 		System.out.println();
 	}
 
@@ -68,7 +72,26 @@ public class UnitTests {
 		}
 	}
 
+	public static void testUnify1() {
+		IntMap<Term> map = IntMap.create();
+
+		Term v0 = new Term.Variable(0);
+		Term v1 = new Term.Variable(1);
+		Term v2 = new Term.Variable(2);
+		Term t0 = new Term.FreeOp("f", v0, v1);
+		Term t1 = new Term.FreeOp("f", v1, v2);
+		Term t2 = new Term.FreeOp("g", v0, v2);
+
+		print(t0.unify(map, t0));
+		print(t0.unify(map, t1));
+		print(t1.unify(map, t0));
+		print(t0.unify(map, t2));
+		print(t1.unify(map, v2));
+	}
+
 	public static void main(String[] args) {
+		testIntMap1();
 		testIntMap2();
+		testUnify1();
 	}
 }

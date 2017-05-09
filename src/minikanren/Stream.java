@@ -25,14 +25,14 @@ public abstract class Stream<VALUE> {
 	 */
 	public abstract Stream<VALUE> merge(Stream<VALUE> other);
 
-	public static abstract class Map<V> {
-		public abstract Stream<V> map(V value);
+	public static abstract class Fun<VALUE> {
+		public abstract Stream<VALUE> calculate(VALUE state);
 	}
 
 	/**
 	 * Maps each element to a lazy stream and merges them into a single stream.
 	 */
-	public abstract Stream<VALUE> mapcat(Map<VALUE> map);
+	public abstract Stream<VALUE> mapcat(Fun<VALUE> fun);
 
 	public static class Nill<V> extends Stream<V> {
 		@Override
@@ -41,7 +41,7 @@ public abstract class Stream<VALUE> {
 		}
 
 		@Override
-		public Stream<V> mapcat(Map<V> map) {
+		public Stream<V> mapcat(Fun<V> map) {
 			return this;
 		}
 	}
@@ -61,8 +61,8 @@ public abstract class Stream<VALUE> {
 		}
 
 		@Override
-		public Stream<V> mapcat(Map<V> map) {
-			return map.map(head).merge(tail);
+		public Stream<V> mapcat(Fun<V> fun) {
+			return fun.calculate(head).merge(tail);
 		}
 	}
 
@@ -75,8 +75,8 @@ public abstract class Stream<VALUE> {
 		}
 
 		@Override
-		public Stream<V> mapcat(Map<V> map) {
-			return work().mapcat(map);
+		public Stream<V> mapcat(Fun<V> fun) {
+			return work().mapcat(fun);
 		}
 	}
 }

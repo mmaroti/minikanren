@@ -31,8 +31,8 @@ public class IntMap<VALUE> implements Iterable<IntMap.Entry<VALUE>> {
 	 * Creates an empty map where all integers are mapped to <code>null</code>.
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T> IntMap<T> create() {
-		return (IntMap<T>) EMPTY;
+	public static <VALUE> IntMap<VALUE> create() {
+		return (IntMap<VALUE>) EMPTY;
 	}
 
 	private static IntMap<Object> EMPTY = new IntMap<Object>();

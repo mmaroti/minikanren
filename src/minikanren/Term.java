@@ -23,28 +23,45 @@ public abstract class Term {
 	 * Finds the term associated with this term (variable) under the given
 	 * substitution map.
 	 */
-	public abstract Term walk(IntMap<Term> map);
+	abstract Term walk(IntMap<Term> map);
 
-	public IntMap<Term> unify(IntMap<Term> map, Term other) {
-		Term term = walk(map);
-		other = other.walk(map);
-
-		if (term.equals(other))
-			return map;
-		else if (term instanceof Variable) {
-			int i = ((Variable) term).index;
-			assert map.get(i) == null;
-			return map.set(i, other);
-		} else if (other instanceof Variable) {
-			int i = ((Variable) other).index;
-			assert map.get(i) == null;
-			return map.set(i, term);
-		}
-
-		return null;
+	private Variable isVariable() {
+		if (this instanceof Variable)
+			return (Variable) this;
+		else
+			return null;
 	}
 
-	protected abstract Variable getVariable();
+	public IntMap<Term> unify(IntMap<Term> map, Term other) {
+		Term t1 = walk(map);
+		Term t2 = other.walk(map);
+
+		Variable v1 = t1.isVariable();
+		Variable v2 = t2.isVariable();
+		if (v1 != null) {
+			if (v2 != null && v1.index == v2.index)
+				return map;
+			else {
+				assert map.get(v1.index) == null;
+				return map.set(v1.index, t2);
+			}
+		} else if (v2 != null) {
+			assert map.get(v2.index) == null;
+			return map.set(v2.index, t1);
+		}
+
+		FreeOp o1 = (FreeOp) t1;
+		FreeOp o2 = (FreeOp) t2;
+		if (!o1.symbol.equals(o2.symbol) || o1.subterms.length != o2.subterms.length)
+			return null;
+
+		for (int i = 0; i < o1.subterms.length; i++) {
+			map = o1.subterms[i].unify(map, o2.subterms[i]);
+			if (map == null)
+				return null;
+		}
+		return map;
+	}
 
 	@Override
 	public abstract String toString();
@@ -61,22 +78,17 @@ public abstract class Term {
 		}
 
 		@Override
-		public Term walk(IntMap<Term> map) {
+		Term walk(IntMap<Term> map) {
 			Variable v = this;
 			for (;;) {
 				Term t = map.get(v.index);
 				if (t == null)
 					return v;
 
-				v = t.getVariable();
+				v = t.isVariable();
 				if (v == null)
 					return t;
 			}
-		}
-
-		@Override
-		protected Variable getVariable() {
-			return this;
 		}
 
 		@Override
@@ -94,30 +106,23 @@ public abstract class Term {
 		}
 	}
 
-	public abstract static class Value extends Term {
-		@Override
-		public Term walk(IntMap<Term> map) {
-			return this;
-		}
-
-		@Override
-		protected Variable getVariable() {
-			return null;
-		}
-	}
-
-	public static class FreeOp extends Value {
-		public final String operation;
+	public static class FreeOp extends Term {
+		public final String symbol;
 		public final Term[] subterms;
 
 		public FreeOp(String operation, Term... subterms) {
-			this.operation = operation;
+			this.symbol = operation;
 			this.subterms = subterms;
 		}
 
 		@Override
+		Term walk(IntMap<Term> map) {
+			return this;
+		}
+
+		@Override
 		public String toString() {
-			String s = operation;
+			String s = symbol;
 			s += '(';
 			for (int i = 0; i < subterms.length; i++) {
 				if (i > 0)
@@ -130,18 +135,18 @@ public abstract class Term {
 
 		@Override
 		public boolean equals(Object other) {
-			if (other instanceof FreeOp) {
-				FreeOp o = (FreeOp) other;
-				if (!operation.equals(o.operation) || subterms.length != o.subterms.length)
+			if (!(other instanceof FreeOp))
+				return false;
+
+			FreeOp o = (FreeOp) other;
+			if (!symbol.equals(o.symbol) || subterms.length != o.subterms.length)
+				return false;
+
+			for (int i = 0; i < subterms.length; i++)
+				if (!subterms[i].equals(o.subterms[i]))
 					return false;
 
-				for (int i = 0; i < subterms.length; i++)
-					if (!subterms[i].equals(o.subterms[i]))
-						return false;
-
-				return true;
-			} else
-				return false;
+			return true;
 		}
 	}
 }
