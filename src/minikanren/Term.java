@@ -25,21 +25,32 @@ public abstract class Term {
 	 */
 	abstract Term walk(IntMap<Term> map);
 
+	/**
+	 * Checks if the given variable occurs in this term
+	 */
+	abstract boolean occurs(int var);
+
 	public IntMap<Term> unify(IntMap<Term> map, Term other) {
 		Term t1 = walk(map);
 		Term t2 = other.walk(map);
 
-		if (t1 instanceof Variable) {
-			Variable v1 = (Variable) t1;
-			if (t2 instanceof Variable) {
-				Variable v2 = (Variable) t2;
+		if (t1 instanceof Var) {
+			Var v1 = (Var) t1;
+			if (t2 instanceof Var) {
+				Var v2 = (Var) t2;
 				if (v2.index == v1.index)
 					return map;
 			}
-			return map.set(v1.index, t2);
-		} else if (t2 instanceof Variable) {
-			Variable v2 = (Variable) t2;
-			return map.set(v2.index, t1);
+			if (t2.occurs(v1.index))
+				return null;
+			else
+				return map.set(v1.index, t2);
+		} else if (t2 instanceof Var) {
+			Var v2 = (Var) t2;
+			if (t1.occurs(v2.index))
+				return null;
+			else
+				return map.set(v2.index, t1);
 		}
 
 		if (t1 instanceof Atom && t2 instanceof Atom) {
@@ -49,13 +60,14 @@ public abstract class Term {
 				return map;
 		}
 
-		if (t1 instanceof FreeOp && t2 instanceof FreeOp) {
-			FreeOp o1 = (FreeOp) t1;
-			FreeOp o2 = (FreeOp) t2;
+		if (t1 instanceof Op && t2 instanceof Op) {
+			Op o1 = (Op) t1;
+			Op o2 = (Op) t2;
 
-			if (o1.symbol.equals(o2.symbol) && o1.subterms.length == o2.subterms.length) {
-				for (int i = 0; map != null && i < o1.subterms.length; i++)
-					map = o1.subterms[i].unify(map, o2.subterms[i]);
+			if (o1.symbol.equals(o2.symbol)
+					&& o1.subs.length == o2.subs.length) {
+				for (int i = 0; map != null && i < o1.subs.length; i++)
+					map = o1.subs[i].unify(map, o2.subs[i]);
 				return map;
 			}
 		}
@@ -69,27 +81,32 @@ public abstract class Term {
 	@Override
 	public abstract boolean equals(Object other);
 
-	public static class Variable extends Term {
+	public static class Var extends Term {
 		public final int index;
 
-		public Variable(int index) {
+		public Var(int index) {
 			assert index >= 0;
 			this.index = index;
 		}
 
 		@Override
 		Term walk(IntMap<Term> map) {
-			Variable v = this;
+			Var v = this;
 			for (;;) {
 				Term t = map.get(v.index);
 				if (t == null)
 					return v;
 
-				if (t instanceof Variable)
-					v = (Variable) t;
+				if (t instanceof Var)
+					v = (Var) t;
 				else
 					return t;
 			}
+		}
+
+		@Override
+		boolean occurs(int var) {
+			return index == var;
 		}
 
 		@Override
@@ -99,21 +116,21 @@ public abstract class Term {
 
 		@Override
 		public boolean equals(Object other) {
-			if (other instanceof Variable) {
-				Variable o = (Variable) other;
+			if (other instanceof Var) {
+				Var o = (Var) other;
 				return index == o.index;
 			} else
 				return false;
 		}
 	}
 
-	public static class FreeOp extends Term {
+	public static class Op extends Term {
 		public final String symbol;
-		public final Term[] subterms;
+		public final Term[] subs;
 
-		public FreeOp(String operation, Term... subterms) {
+		public Op(String operation, Term... subs) {
 			this.symbol = operation;
-			this.subterms = subterms;
+			this.subs = subs;
 		}
 
 		@Override
@@ -122,13 +139,21 @@ public abstract class Term {
 		}
 
 		@Override
+		boolean occurs(int var) {
+			for (int i = 0; i < subs.length; i++)
+				if (subs[i].occurs(var))
+					return true;
+			return false;
+		}
+
+		@Override
 		public String toString() {
 			String s = symbol;
 			s += '(';
-			for (int i = 0; i < subterms.length; i++) {
+			for (int i = 0; i < subs.length; i++) {
 				if (i > 0)
 					s += ',';
-				s += subterms[i].toString();
+				s += subs[i].toString();
 			}
 			s += ')';
 			return s;
@@ -136,16 +161,16 @@ public abstract class Term {
 
 		@Override
 		public boolean equals(Object other) {
-			if (!(other instanceof FreeOp))
+			if (!(other instanceof Op))
 				return false;
 
-			FreeOp o = (FreeOp) other;
+			Op o = (Op) other;
 			if (!symbol.equals(o.symbol)
-					|| subterms.length != o.subterms.length)
+					|| subs.length != o.subs.length)
 				return false;
 
-			for (int i = 0; i < subterms.length; i++)
-				if (!subterms[i].equals(o.subterms[i]))
+			for (int i = 0; i < subs.length; i++)
+				if (!subs[i].equals(o.subs[i]))
 					return false;
 
 			return true;
@@ -163,6 +188,11 @@ public abstract class Term {
 		@Override
 		Term walk(IntMap<Term> map) {
 			return this;
+		}
+
+		@Override
+		boolean occurs(int var) {
+			return false;
 		}
 
 		@Override

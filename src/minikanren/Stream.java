@@ -34,48 +34,59 @@ public abstract class Stream<VALUE> {
 	 */
 	public abstract Stream<VALUE> mapcat(Fun<VALUE> fun);
 
-	public static class Nill<V> extends Stream<V> {
+	/**
+	 * Creates a lazy stream of values
+	 */
+	@SafeVarargs
+	public static <VALUE> Stream<VALUE> create(VALUE... values) {
+		Stream<VALUE> stream = new Nill<VALUE>();
+		for (int i = values.length - 1; i >= 0; i--)
+			stream = new Cons<VALUE>(values[i], stream);
+		return stream;
+	}
+
+	static class Nill<VALUE> extends Stream<VALUE> {
 		@Override
-		public Stream<V> merge(Stream<V> other) {
+		public Stream<VALUE> merge(Stream<VALUE> other) {
 			return other;
 		}
 
 		@Override
-		public Stream<V> mapcat(Fun<V> map) {
+		public Stream<VALUE> mapcat(Fun<VALUE> map) {
 			return this;
 		}
 	}
 
-	public static class Cons<V> extends Stream<V> {
-		public final V head;
-		public Stream<V> tail;
+	static class Cons<VALUE> extends Stream<VALUE> {
+		public final VALUE head;
+		public Stream<VALUE> tail;
 
-		public Cons(V head, Stream<V> tail) {
+		public Cons(VALUE head, Stream<VALUE> tail) {
 			this.head = head;
 			this.tail = tail;
 		}
 
 		@Override
-		public Stream<V> merge(Stream<V> other) {
-			return new Cons<V>(head, other.merge(tail));
+		public Stream<VALUE> merge(Stream<VALUE> other) {
+			return new Cons<VALUE>(head, other.merge(tail));
 		}
 
 		@Override
-		public Stream<V> mapcat(Fun<V> fun) {
-			return fun.calculate(head).merge(tail);
+		public Stream<VALUE> mapcat(Fun<VALUE> fun) {
+			return fun.calculate(head).merge(tail.mapcat(fun));
 		}
 	}
 
-	public static abstract class Lazy<V> extends Stream<V> {
-		public abstract Stream<V> work();
+	public static abstract class Lazy<VALUE> extends Stream<VALUE> {
+		public abstract Stream<VALUE> work();
 
 		@Override
-		public Stream<V> merge(Stream<V> other) {
+		public Stream<VALUE> merge(Stream<VALUE> other) {
 			return other.merge(work());
 		}
 
 		@Override
-		public Stream<V> mapcat(Fun<V> fun) {
+		public Stream<VALUE> mapcat(Fun<VALUE> fun) {
 			return work().mapcat(fun);
 		}
 	}
