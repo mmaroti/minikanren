@@ -16,7 +16,7 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-package minikanren;
+package minikanren.core;
 
 public abstract class Formula extends Stream.Fun<Formula.State> {
 	protected static class State {

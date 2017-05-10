@@ -16,9 +16,10 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-package minikanren;
+package minikanren.test;
 
 import java.util.*;
+import minikanren.core.*;
 
 public class UnitTests {
 	public static void verify(boolean cond) {
