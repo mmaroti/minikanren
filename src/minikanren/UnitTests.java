@@ -78,6 +78,8 @@ public class UnitTests {
 		Term v0 = new Term.Variable(0);
 		Term v1 = new Term.Variable(1);
 		Term v2 = new Term.Variable(2);
+		Term a0 = new Term.Atom<Integer>(10);
+		Term a1 = new Term.Atom<Integer>(11);
 		Term t0 = new Term.FreeOp("f", v0, v1);
 		Term t1 = new Term.FreeOp("f", v1, v2);
 		Term t2 = new Term.FreeOp("g", v0, v2);
@@ -87,6 +89,8 @@ public class UnitTests {
 		print(t1.unify(map, t0));
 		print(t0.unify(map, t2));
 		print(t1.unify(map, v2));
+		print(v0.unify(map, a0));
+		print(a1.unify(map, a0));
 	}
 
 	public static void main(String[] args) {

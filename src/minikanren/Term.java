@@ -25,42 +25,42 @@ public abstract class Term {
 	 */
 	abstract Term walk(IntMap<Term> map);
 
-	private Variable isVariable() {
-		if (this instanceof Variable)
-			return (Variable) this;
-		else
-			return null;
-	}
-
 	public IntMap<Term> unify(IntMap<Term> map, Term other) {
 		Term t1 = walk(map);
 		Term t2 = other.walk(map);
 
-		Variable v1 = t1.isVariable();
-		Variable v2 = t2.isVariable();
-		if (v1 != null) {
-			if (v2 != null && v1.index == v2.index)
-				return map;
-			else {
-				assert map.get(v1.index) == null;
-				return map.set(v1.index, t2);
+		if (t1 instanceof Variable) {
+			Variable v1 = (Variable) t1;
+			if (t2 instanceof Variable) {
+				Variable v2 = (Variable) t2;
+				if (v2.index == v1.index)
+					return map;
 			}
-		} else if (v2 != null) {
-			assert map.get(v2.index) == null;
+			return map.set(v1.index, t2);
+		} else if (t2 instanceof Variable) {
+			Variable v2 = (Variable) t2;
 			return map.set(v2.index, t1);
 		}
 
-		FreeOp o1 = (FreeOp) t1;
-		FreeOp o2 = (FreeOp) t2;
-		if (!o1.symbol.equals(o2.symbol) || o1.subterms.length != o2.subterms.length)
-			return null;
-
-		for (int i = 0; i < o1.subterms.length; i++) {
-			map = o1.subterms[i].unify(map, o2.subterms[i]);
-			if (map == null)
-				return null;
+		if (t1 instanceof Atom && t2 instanceof Atom) {
+			Atom<?> a1 = (Atom<?>) t1;
+			Atom<?> a2 = (Atom<?>) t2;
+			if (a1.value.equals(a2.value))
+				return map;
 		}
-		return map;
+
+		if (t1 instanceof FreeOp && t2 instanceof FreeOp) {
+			FreeOp o1 = (FreeOp) t1;
+			FreeOp o2 = (FreeOp) t2;
+
+			if (o1.symbol.equals(o2.symbol) && o1.subterms.length == o2.subterms.length) {
+				for (int i = 0; map != null && i < o1.subterms.length; i++)
+					map = o1.subterms[i].unify(map, o2.subterms[i]);
+				return map;
+			}
+		}
+
+		return null;
 	}
 
 	@Override
@@ -85,8 +85,9 @@ public abstract class Term {
 				if (t == null)
 					return v;
 
-				v = t.isVariable();
-				if (v == null)
+				if (t instanceof Variable)
+					v = (Variable) t;
+				else
 					return t;
 			}
 		}
@@ -139,7 +140,8 @@ public abstract class Term {
 				return false;
 
 			FreeOp o = (FreeOp) other;
-			if (!symbol.equals(o.symbol) || subterms.length != o.subterms.length)
+			if (!symbol.equals(o.symbol)
+					|| subterms.length != o.subterms.length)
 				return false;
 
 			for (int i = 0; i < subterms.length; i++)
@@ -147,6 +149,34 @@ public abstract class Term {
 					return false;
 
 			return true;
+		}
+	}
+
+	public static class Atom<VALUE> extends Term {
+		public final VALUE value;
+
+		public Atom(VALUE value) {
+			assert value != null;
+			this.value = value;
+		}
+
+		@Override
+		Term walk(IntMap<Term> map) {
+			return this;
+		}
+
+		@Override
+		public String toString() {
+			return value.toString();
+		}
+
+		@Override
+		public boolean equals(Object other) {
+			if (!(other instanceof Atom))
+				return false;
+
+			Atom<?> o = (Atom<?>) other;
+			return value.equals(o.value);
 		}
 	}
 }
